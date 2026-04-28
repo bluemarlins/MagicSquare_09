@@ -3,4 +3,4 @@
 from src.constants import BLANK_COUNT as BLANK_COUNT
 from src.constants import MATRIX_SIZE as GRID_SIZE
 
-MAGIC_CONSTANT: int = 34
+MAGIC_CONSTANT: int = GRID_SIZE * (GRID_SIZE * GRID_SIZE + 1) // 2

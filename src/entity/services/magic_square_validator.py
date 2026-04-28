@@ -3,6 +3,18 @@
 from src.entity.constants import GRID_SIZE, MAGIC_CONSTANT
 
 
+def _sum_col(grid: list[list[int]], col: int) -> int:
+    return sum(grid[r][col] for r in range(GRID_SIZE))
+
+
+def _sum_main_diag(grid: list[list[int]]) -> int:
+    return sum(grid[i][i] for i in range(GRID_SIZE))
+
+
+def _sum_anti_diag(grid: list[list[int]]) -> int:
+    return sum(grid[i][GRID_SIZE - 1 - i] for i in range(GRID_SIZE))
+
+
 def is_magic_square(grid: list[list[int]]) -> bool:
     """입력 격자가 4x4 마방진인지 검증한다.
 
@@ -22,14 +34,13 @@ def is_magic_square(grid: list[list[int]]) -> bool:
     if set(values) != expected_values or len(values) != len(set(values)):
         return False
 
-    for row in grid:
-        if sum(row) != MAGIC_CONSTANT:
-            return False
+    if any(sum(row) != MAGIC_CONSTANT for row in grid):
+        return False
 
-    for col in range(GRID_SIZE):
-        if sum(grid[row][col] for row in range(GRID_SIZE)) != MAGIC_CONSTANT:
-            return False
+    if any(_sum_col(grid, col) != MAGIC_CONSTANT for col in range(GRID_SIZE)):
+        return False
 
-    main_diagonal = sum(grid[idx][idx] for idx in range(GRID_SIZE))
-    anti_diagonal = sum(grid[idx][GRID_SIZE - 1 - idx] for idx in range(GRID_SIZE))
-    return main_diagonal == MAGIC_CONSTANT and anti_diagonal == MAGIC_CONSTANT
+    return (
+        _sum_main_diag(grid) == MAGIC_CONSTANT
+        and _sum_anti_diag(grid) == MAGIC_CONSTANT
+    )
