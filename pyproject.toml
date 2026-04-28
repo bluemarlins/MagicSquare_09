@@ -1,0 +1,11 @@
+[project]
+name = "magicsquare"
+version = "0.1.0"
+description = "Magic Square 4x4 TDD practice project"
+requires-python = ">=3.10"
+dependencies = [
+    "PyQt6",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

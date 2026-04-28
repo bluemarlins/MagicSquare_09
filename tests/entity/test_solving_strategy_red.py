@@ -7,7 +7,7 @@ class TestMissingNumberFinderRed:
     @staticmethod
     def _find_not_exist_nums(grid: list[list[int]]) -> list[int]:
         find_not_exist_nums = load_attr(
-            "entity.services.missing_number_finder", "find_not_exist_nums"
+            "src.entity.services.missing_number_finder", "find_not_exist_nums"
         )
         result = find_not_exist_nums(grid)
         assert isinstance(result, list)
@@ -36,21 +36,23 @@ class TestMissingNumberFinderRed:
 class TestSolvingStrategyRed:
     @staticmethod
     def _solution(grid: list[list[int]]) -> list[int]:
-        solution = load_attr("entity.services.solving_strategy", "solution")
+        solution = load_attr("src.entity.services.solving_strategy", "solution")
         result = solution(grid)
         assert isinstance(result, list)
         return result
 
     @staticmethod
     def _no_solution_error() -> type[Exception]:
-        exc = load_attr("exceptions.domain_exceptions", "NoSolutionError")
+        exc = load_attr("src.exceptions.domain_exceptions", "NoSolutionError")
         if not isinstance(exc, type) or not issubclass(exc, Exception):
             pytest.fail("RED: NoSolutionError must be an Exception subclass")
         return exc
 
     @staticmethod
     def _invalid_blank_count_error() -> type[Exception]:
-        exc = load_attr("exceptions.domain_exceptions", "InvalidBlankCountError")
+        exc = load_attr(
+            "src.exceptions.domain_exceptions", "InvalidBlankCountError"
+        )
         if not isinstance(exc, type) or not issubclass(exc, Exception):
             pytest.fail("RED: InvalidBlankCountError must be an Exception subclass")
         return exc
@@ -158,7 +160,7 @@ class TestSolvingStrategyRed:
         completed = self._apply_solution(matrix, result)
 
         is_magic_square = load_attr(
-            "entity.services.magic_square_validator", "is_magic_square"
+            "src.entity.services.magic_square_validator", "is_magic_square"
         )
         assert is_magic_square(completed) is True
 
@@ -186,6 +188,6 @@ class TestSolvingStrategyRed:
         completed = self._apply_solution(matrix, result)
 
         is_magic_square = load_attr(
-            "entity.services.magic_square_validator", "is_magic_square"
+            "src.entity.services.magic_square_validator", "is_magic_square"
         )
         assert is_magic_square(completed) is True

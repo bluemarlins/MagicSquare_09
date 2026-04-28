@@ -7,7 +7,7 @@ class TestMagicSquareValidatorRed:
     @staticmethod
     def _is_magic_square(grid: list[list[int]]) -> bool:
         is_magic_square = load_attr(
-            "entity.services.magic_square_validator", "is_magic_square"
+            "src.entity.services.magic_square_validator", "is_magic_square"
         )
         result = is_magic_square(grid)
         assert isinstance(result, bool)
