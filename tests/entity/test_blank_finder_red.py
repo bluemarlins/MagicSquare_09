@@ -6,14 +6,18 @@ from tests.red_helpers import DURER_MAGIC_SQUARE, copy_grid, load_attr
 class TestBlankFinderRed:
     @staticmethod
     def _find_blank_coords(grid: list[list[int]]) -> list[tuple[int, int]]:
-        find_blank_coords = load_attr("entity.services.blank_finder", "find_blank_coords")
+        find_blank_coords = load_attr(
+            "src.entity.services.blank_finder", "find_blank_coords"
+        )
         result = find_blank_coords(grid)
         assert isinstance(result, list)
         return result
 
     @staticmethod
     def _invalid_blank_count_error() -> type[Exception]:
-        exc = load_attr("exceptions.domain_exceptions", "InvalidBlankCountError")
+        exc = load_attr(
+            "src.exceptions.domain_exceptions", "InvalidBlankCountError"
+        )
         if not isinstance(exc, type) or not issubclass(exc, Exception):
             pytest.fail("RED: InvalidBlankCountError must be an Exception subclass")
         return exc

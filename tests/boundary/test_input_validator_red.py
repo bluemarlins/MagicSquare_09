@@ -6,7 +6,7 @@ from tests.red_helpers import DURER_MAGIC_SQUARE, copy_grid, load_attr
 class TestInputValidatorRed:
     @staticmethod
     def _validate(grid: list[list[int]] | None) -> object:
-        validator_cls = load_attr("boundary.input_validator", "InputValidator")
+        validator_cls = load_attr("src.boundary.input_validator", "InputValidator")
         validator = validator_cls()
 
         if hasattr(validator, "validate"):

@@ -7,7 +7,7 @@ class TestSolutionContractRed:
     @staticmethod
     def _solve(grid: list[list[int]]) -> list[int]:
         controller_cls = load_attr(
-            "boundary.magic_square_controller", "MagicSquareController"
+            "src.boundary.magic_square_controller", "MagicSquareController"
         )
         controller = controller_cls()
 
