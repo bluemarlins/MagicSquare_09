@@ -9,6 +9,17 @@
 
 ---
 
+## 문서 작성 원칙 (RED)
+
+- 본 문서는 구현 전 단계의 RED 테스트 계약만 다룬다. GREEN/REFACTOR 및 구현 본문은 범위 외다.
+- 저장소 테스트 프레임워크는 `pytest`를 기준으로 한다.
+- 파일/클래스(또는 함수) 이름만 먼저 정의한 테스트 스켈레톤도 RED로 인정한다.
+- 스켈레톤 본문은 미구현 상태를 명시하기 위해 아래 중 한 줄만 둔다.
+  - `pytest.fail("RED: not implemented yet")`
+  - `assert True is False`
+
+---
+
 ## A. 빈칸 찾기 — `find_blank_coords`
 
 ---

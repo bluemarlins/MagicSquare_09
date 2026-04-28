@@ -1,320 +1,357 @@
-# Git branch strategy guidance
-_Exported on 4/28/2026 at 13:43:30 GMT+9 from Cursor (3.2.11)_
+# Magic square failing tests design
+_Exported on 4/28/2026 at 14:02:42 GMT+9 from Cursor (3.2.11)_
 
 ---
 
 **User**
 
-@README.md 을 참조하여 작업을 하려는데, 깃 브랜치 전략을 어떻게 하면 좋을지 알려줘 
+당신은 Dual-Track UI + Logic TDD 전문가입니다.
 
----
+우리는 이미 Magic Square(4x4) 시나리오를 작성했습니다.
+지금 단계는 구현이 아니라,
+시나리오를 “실패하는 테스트(RED)”로 변환하는 것입니다.
 
-**Cursor**
+중요
+- 구현 코드를 작성하지 마십시오.
+- GREEN 단계로 가지 마십시오.
+- REFACTOR 단계로 가지 마십시오.
+- 오직 RED 테스트만 작성하십시오.
+- 모든 테스트는 현재 구현이 없기 때문에 실패해야 합니다.
 
-README.md를 전체적으로 분석했습니다. 프로젝트 구조(ECB + Dual-Track TDD + 30 TASK / 9 US)에 최적화된 Git 브랜치 전략을 제안합니다.
+------------------------------------------------------------
+프로젝트 조건
+------------------------------------------------------------
 
----
+입력:
+- 4x4 int\[]\[]
+- 0은 빈칸
+- 정확히 2개의 0
+- 값 범위 1\~16
+- 중복 금지 (0 제외)
 
-## 추천 Git 브랜치 전략
+출력:
+- int\[6]
+- 좌표는 1-index
+- \[r1, c1, n1, r2, c2, n2]
 
-### 브랜치 계층 구조
+마방진 상수:
+- 4x4 → 34
 
-```
-main
-  └── develop
-        ├── track-b/us-001-domain-init        ← Entity (TASK-001~003)
-        ├── track-b/us-002-validator           ← Entity (TASK-004~006)
-        ├── track-b/us-003-blank-finder        ← Entity (TASK-007~009)
-        ├── track-b/us-004-missing-number      ← Entity (TASK-010~012)
-        ├── track-b/us-005-solving-logic       ← Entity (TASK-013~015)
-        ├── track-a/us-007-boundary            ← Boundary (TASK-019~022)
-        ├── feat/us-006-control-solver         ← Control (TASK-016~018)
-        ├── feat/us-008-integration-data       ← 통합+Data (TASK-023~026)
-        └── feat/us-009-quality-gate           ← 품질 게이트 (TASK-027~030)
-```
+------------------------------------------------------------
+Dual-Track RED 단계 구조
+------------------------------------------------------------
 
----
+UI RED        Logic RED
+   ↓              ↓
+(둘 다 실패 상태)
 
-### 브랜치 설명
+------------------------------------------------------------
+TRACK A — UI / Boundary RED
+------------------------------------------------------------
 
-| 브랜치 | 역할 | 병합 조건 |
-|--------|------|-----------|
-| `main` | 최종 릴리즈 — SC-07 (74개 전체 GREEN) | `develop` → `main` PR, 74개 GREEN 확인 후 |
-| `develop` | 통합 브랜치 — US 단위 병합 | 각 US 브랜치 완료 후 PR |
-| `track-b/us-XXX-*` | **Track B** — 순수 Domain 로직 (Entity 레이어) | 해당 US의 모든 TASK RED→GREEN→REFACTOR 완료 |
-| `track-a/us-007-boundary` | **Track A** — UI Boundary (Mock 기반 격리) | UI-T01~T19 전체 GREEN |
-| `feat/us-006-*` | Control 레이어 — Solver 조율 | SV-T01~T03 GREEN |
-| `feat/us-008-*` | 통합 + Data Layer | IT-S01~S04, DT-T01~T13 GREEN |
-| `feat/us-009-*` | 커버리지·ECB 점검·품질 게이트 | SC-01~SC-09 전체 충족 |
+다음을 실패 테스트로 변환하십시오:
 
----
+1. 4x4가 아닌 입력은 예외 발생
+2. 빈칸이 2개가 아니면 예외 발생
+3. 값 범위 위반 시 예외 발생
+4. 중복 숫자 존재 시 예외 발생
+5. 반환 배열 길이는 6이어야 한다
+6. 반환 좌표는 1-index여야 한다
 
-### 커밋 컨벤션 (TDD 단계 반영)
+각 테스트에 대해:
+- 테스트 이름
+- Given (입력)
+- When (호출)
+- Then (기대)
+- 이 테스트가 보호하는 계약 설명
 
-```
-[RED]    test: BF-T03 InvalidBlankCountError 실패 확인
-[GREEN]  feat: blank_finder 빈칸 개수 검증 최소 구현
-[REFACT] refactor: 예외 메시지 상수화 · 타입힌트 추가
-```
+------------------------------------------------------------
+TRACK B — Logic RED
+------------------------------------------------------------
 
-TDD 단계 태그를 커밋 앞에 명시하면 `git log`에서 RED→GREEN→REFACTOR 흐름을 바로 추적할 수 있습니다.
+다음을 실패 테스트로 작성하십시오:
 
----
+1. find\_blank\_coords()
+   - row-major 순서로 정확히 2개 반환
 
-### 작업 순서 및 의존성 (ECB 레이어 순서 준수)
+2. find\_not\_exist\_nums()
+   - 누락 숫자 2개 반환
+   - 오름차순
 
-```
-1단계 (병렬 가능)
-  track-b/us-001  →  track-b/us-002  →  track-b/us-003
-  track-b/us-004  →  track-b/us-005
-  track-a/us-007  ← Domain을 Mock으로 격리하므로 병렬 진행 가능
+3. is\_magic\_square()
+   - 모든 행 합 동일
+   - 모든 열 합 동일
+   - 두 대각선 합 동일
+   - 34와 일치
 
-2단계 (Entity 완료 후)
-  feat/us-006-control-solver  ← Track B US-001~005 develop 병합 후 진행
+4. solution()
+   - small → first blank 시도
+   - 실패 시 reverse 시도
+   - 6-length 반환
+   - 1-index 좌표
 
-3단계 (Control 완료 후)
-  feat/us-008-integration-data  ← 전 스택 연결
+각 테스트는:
+- 실패 상태임을 명확히 설명
+- 어떤 Invariant를 검증하는지 명시
 
-4단계 (통합 완료 후)
-  feat/us-009-quality-gate  ← pytest 74개 GREEN + ECB 점검
-```
+------------------------------------------------------------
+출력 형식
+------------------------------------------------------------
 
-> **Track A(Boundary)는 Domain을 Mock으로 격리**하므로, Track B와 병렬로 브랜치를 열어 독립 진행할 수 있습니다. README의 Dual-Track TDD 설계 의도와 정확히 일치합니다.
+# UI RED Tests
+- Test ID
+- Scenario
+- Invariant 보호 내용
 
----
+# Logic RED Tests
+- Test ID
+- Scenario
+- Invariant 보호 내용
 
-### 브랜치 생성 명령 (시작 시)
+------------------------------------------------------------
 
-```bash
-git checkout -b develop
-git checkout -b track-b/us-001-domain-init develop
-git checkout -b track-a/us-007-boundary develop   # 병렬 시작 가능
-```
-
----
-
-### 요약
-
-- `track-b/*` — Entity 순수 로직 (외부 의존 없음, 독립 진행)
-- `track-a/*` — Boundary, Mock 기반 격리 (**Track B와 병렬 가능**)
-- `feat/*` — Control, 통합, 품질 게이트 (레이어 의존 순서 준수)
-- 각 US 브랜치는 TASK 단위 RED→GREEN→REFACTOR 커밋 흐름 유지
-- `develop` 병합 기준: 해당 US 체크포인트/Validate 조건 통과
-- `main` 병합 기준: TASK-028 (`pytest` 74개 전체 GREEN) + SC-01~SC-09 충족
-
----
-
-**User**
-
-red/green/refactor를 분리하여 branch로 관리하려고 해 우선 red branch를 생성해줘 
-
----
-
-**Cursor**
-
-현재 `main` 브랜치만 있는 초기 상태입니다. 앞서 논의한 전략대로 `develop`을 먼저 만들고, 첫 작업인 US-001의 RED 브랜치를 생성합니다.
-
-브랜치 생성이 완료됐습니다. 현재 상태는 아래와 같습니다.
-
----
-
-### 현재 브랜치 구조
-
-```
-main
-  └── develop
-        └── red/us-001-domain-init  ← 현재 위치 (*)
-```
-
----
-
-### TDD 사이클별 브랜치 흐름 (US-001 기준)
-
-| 단계 | 브랜치 | 작업 내용 | 병합 목적지 |
-|------|--------|-----------|-------------|
-| **RED** | `red/us-001-domain-init` | TASK-001~003 실패 테스트 작성 | → `green/us-001-domain-init` 생성 기점 |
-| **GREEN** | `green/us-001-domain-init` | 최소 구현으로 테스트 통과 | → `refactor/us-001-domain-init` 생성 기점 |
-| **REFACTOR** | `refactor/us-001-domain-init` | 타입힌트·독스트링·상수 정리 | → `develop` 병합 |
-
----
-
-지금 `red/us-001-domain-init` 브랜치에서 다음 작업을 시작하면 됩니다.
-
-**TASK-001-1 `[RED]`** — `tests/entity/test_domain_constants.py` 작성
-- `MAGIC_CONSTANT`, `GRID_SIZE`, `BLANK_COUNT` 임포트 실패(`ImportError`) 확인
-
-테스트 파일을 바로 작성할까요?
-
----
-
-**User**
-
-첨부된 Table은 Test Case List야,  이를 아래의 양식에 맞춰 작성해줘 
-
-테스트 케이스	프로젝트명	
-	대상 시스템	
-단계		작성자		승인자		문서 상태	
-작성일		버전		테스트 범위		테스트 조직	
-테스트 ID			테스트 일자	
-테스트 목적	
-테스트 기능	
-입력값	
-테스트단계					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-	
-테스트환경	
-전제 조건	
-성공 /실패 기준	
-특별하게 필요한 절차	
-
-
+구현 금지
+GREEN 단계 금지
+REFACTOR 금지
+오직 RED 테스트 설계만 수행하십시오
 
 
 ---
 
 **Cursor**
 
-이미지에서 테스트 케이스를 분석하고 문서를 작성하겠습니다.
-
-`Report/08_MagicSquare_TestCase_Document.md` (44KB) 파일이 생성됐습니다.
+구현·GREEN·REFACTOR 없이, 요청하신 형식으로 **RED 테스트 설계만** 정리했습니다.
 
 ---
 
-## 작성 결과 요약
+# UI RED Tests
 
-이미지에서 추출한 **총 24개 테스트 케이스**를 모두 양식에 맞춰 작성했습니다.
+## UI-01 — 그리드 크기가 4×4가 아님
 
-### 구성
+**Scenario**
 
-| 그룹 | 기능 | 건수 |
-|------|------|:----:|
-| A | 빈칸 찾기 (`find_blank_coords`) | 5 |
-| B | 마방진 검증 (`is_magic_square`) | 5 |
-| C | 솔루션 / 경계값 (`solution()`) | 8 |
-| D | 오류 예외 (Error Cases) | 6 |
-| **합계** | | **24** |
-
-### 각 테스트 케이스에 포함된 항목
-
-- 테스트 케이스 ID / 프로젝트명 / 대상 시스템
-- 단계 / 작성자 / 승인자 / 문서 상태
-- 작성일 / 버전 / 테스트 범위 / 테스트 조직
-- 테스트 목적 / 테스트 기능 / 입력값 (Python 코드)
-- **테스트 단계 표** (순번 · Given/When/Then · 예상결과 · 실제결과 · 합격여부)
-- 테스트 환경 / 전제 조건 / 성공·실패 기준 / 특별 절차
-
----
-
-> 이미지 해상도 한계로 일부 입력 매트릭스 세부값은 프로젝트 도메인(뒤러 4×4 마방진)을 기반으로 재구성했습니다. 수정이 필요한 값이 있으면 알려주세요.
-
----
-
-**User**
-
-@Report/08_MagicSquare_TestCase_Document.md 는 보고서라기 보다 Test Case 문서야 @docs/ 로 이동 시키고 파일 이름도 역할에 맞게 변경해줘
-
----
-
-**Cursor**
-
-완료됐습니다.
-
-- **이동 전:** `Report/08_MagicSquare_TestCase_Document.md`
-- **이동 후:** `docs/TestCases.md`
-
-`docs/` 폴더에는 이제 PRD와 나란히 테스트 케이스 문서가 위치합니다.
-
-```
-docs/
-├── PRD.md          ← 요구사항 / 불변조건 / Gherkin 시나리오
-└── TestCases.md    ← 테스트 케이스 문서 (24개)
-```
-
-README.md의 `## 11. 참고 문서` 섹션에 `TestCases.md` 링크도 추가할까요?
-
----
-
-**User**
-
-작업내용을 https://github.com/bluemarlins/MagicSquare_09 에 push 해줘 
-
----
-
-**Cursor**
-
-현재 상태를 파악했습니다. `red` 브랜치에 `docs/TestCases.md`가 미커밋 상태입니다. 커밋 후 모든 브랜치를 push하겠습니다.
-
-모든 push가 완료됐습니다.
-
----
-
-### Push 결과
-
-| 브랜치 | 상태 | GitHub |
-|--------|------|--------|
-| `main` | 이미 최신 (up-to-date) | ✅ |
-| `develop` | 신규 push 완료 | ✅ |
-| `red` | 신규 push 완료 (TestCases.md 포함) | ✅ |
-
-### 최신 커밋
-
-```
-053d228  docs: add TestCases.md with 24 test cases   ← red 브랜치
-07fb692  docs: extend PRD and add pre-implementation  ← main / develop
-```
-
-GitHub 저장소: [https://github.com/bluemarlins/MagicSquare_09](https://github.com/bluemarlins/MagicSquare_09)
-
----
-
-**User**
-
-@Report/ 에 보고서로 내보내줘 
-
----
-
-**Cursor**
-
-기존 보고서 형식을 파악하겠습니다.
-
-기존 보고서 형식(헤더 메타, 목차, 섹션 구조)에 맞게 테스트 케이스 작성 결과를 보고서로 내보내겠습니다.
-
-`Report/08_MagicSquare_TestCase_Report.md` (13KB) 생성이 완료됐습니다.
-
----
-
-### 보고서 구성 (11개 섹션)
-
-| 섹션 | 내용 |
+| 단계 | 내용 |
 |------|------|
-| 1. 작성 배경 및 목적 | TDD RED 단계 진입을 위한 TC 선행 정의 필요성 |
-| 2. 설계 원칙 | TC ID 체계, 시나리오 레벨, BDD 구조, 입력 기준 행렬 |
-| 3. 그룹별 현황 | A·B·C·D 그룹 24개 TC 집계 (L1/L2/L3 분류) |
-| 4~7. 그룹별 상세 | 각 TC 목록, 설계 포인트, 입력 조건, 예상 결과 |
-| 8. REQ-TC Traceability | INV-01~09 ↔ TC 연결 (REQ-006 갭 식별) |
-| 9. ECB 레이어 커버리지 | Entity(18)/Boundary(6) — Control·Data·통합 미작성 현황 |
-| 10. 미정의 항목 | D-007(DUPLICATE_VALUE) 등 후속 과제 |
-| 11. 종합 결론 | 완료 사항, 핵심 설계 결정, 다음 단계 |
+| **Given** | `int[][]`가 4행이 아니거나, 각 행 길이가 4가 아님 (예: 3×4, 4×3, null 행, 가변 길이 행). |
+| **When** | 검증/솔루션 진입점(바운더리 API)에 그리드를 넘김. |
+| **Then** | 계약 위반으로 **예외** 발생. 성공 경로나 부분 결과 없음. |
 
-### 파일 구조 정리
+**Invariant 보호 내용**  
+“입력은 항상 유효한 4×4 그리드”라는 **형태·차원 계약**을 강제한다. 잘못된 크기는 로직으로 넘기지 않는다.
 
-```
-docs/
-├── PRD.md             ← 요구사항 원본
-└── TestCases.md       ← TC 상세 명세 (24개)
+**RED 상태**  
+바운더리 검증이 없으면 테스트는 실패(예외 미발생 또는 잘못된 동작).
 
-Report/
-├── 01~07_...
-└── 08_MagicSquare_TestCase_Report.md   ← 새 보고서
-```
+---
+
+## UI-02 — 빈칸(0) 개수가 정확히 2가 아님
+
+**Scenario**
+
+| 단계 | 내용 |
+|------|------|
+| **Given** | 4×4이지만 0이 0개, 1개, 3개 이상인 보드. |
+| **When** | 동일 진입점 호출. |
+| **Then** | **예외** (빈칸 개수 계약 위반). |
+
+**Invariant 보호 내용**  
+“정확히 두 칸이 비어 있어야 퍼즐이 정의된다”는 **빈칸 개수 계약**을 보호한다.
+
+**RED 상태**  
+검증 미구현 시 실패.
+
+---
+
+## UI-03 — 값 범위 위반 (1~16 밖 또는 0 외 비허용)
+
+**Scenario**
+
+| 단계 | 내용 |
+|------|------|
+| **Given** | 4×4, 0은 2개, 그 외 어떤 칸이라도 `<1`, `>16`, 또는 도메인 정책상 허용되지 않는 값. |
+| **When** | 진입점 호출. |
+| **Then** | **예외**. |
+
+**Invariant 보호 내용**  
+“비어 있지 않은 칸은 1~16만 허용”이라는 **값 도메인 계약**을 보호한다.
+
+**RED 상태**  
+범위 검사 없으면 실패.
+
+---
+
+## UI-04 — 0 제외 중복 숫자 존재
+
+**Scenario**
+
+| 단계 | 내용 |
+|------|------|
+| **Given** | 4×4, 0 두 개, 나머지는 1~16이지만 동일 숫자가 두 칸 이상. |
+| **When** | 진입점 호출. |
+| **Then** | **예외** (퍼즐 무결성 위반). |
+
+**Invariant 보호 내용**  
+“0을 제외하면 1~16이 각각 최대 한 번”이라는 **중복 없음 계약**을 보호한다.
+
+**RED 상태**  
+중복 검사 없으면 실패.
+
+---
+
+## UI-05 — 반환 배열 길이는 6
+
+**Scenario**
+
+| 단계 | 내용 |
+|------|------|
+| **Given** | UI-01~04를 모두 만족하는 **유효** 입력 보드 하나(고정 픽스처). |
+| **When** | 성공 경로로 솔루션(또는 최종 응답) 호출. |
+| **Then** | 반환 `int[]`(또는 동등 타입)의 **길이가 정확히 6**. `null`이면 실패로 간주 가능. |
+
+**Invariant 보호 내용**  
+출력 스키마 `[r1,c1,n1,r2,c2,n2]`에 대한 **길이·형태 계약**을 보호한다.
+
+**RED 상태**  
+`solution()` 등이 없거나 빈 배열/다른 길이를 반환하면 실패.
+
+---
+
+## UI-06 — 반환 좌표는 1-index
+
+**Scenario**
+
+| 단계 | 내용 |
+|------|------|
+| **Given** | 유효 보드와, **알려진** 정답(또는 스펙으로 고정한 기대 6-tuple) — 좌표는 모두 1~4 범위의 1-index. |
+| **When** | 솔루션 호출. |
+| **Then** | 반환 `(r1,c1,r2,c2)`가 각각 **1 이상 4 이하 정수**이고, 0-index(0~3) 패턴과 일치하지 않도록 검증(예: 기대값과 동등 비교). |
+
+**Invariant 보호 내용**  
+“좌표는 항상 1-index”라는 **API 좌표계 계약**을 보호한다.
+
+**RED 상태**  
+구현이 없거나 0-index로 반환하면 실패.
+
+---
+
+# Logic RED Tests
+
+## L-01 — `find_blank_coords()`
+
+| Test ID | Given | When | Then |
+|---------|--------|------|------|
+| **L-01a** | 0이 두 칸, **row-major**로 먼저 나오는 순서가 알려진 보드 | `find_blank_coords(grid)` | 길이 2의 좌표 리스트/배열, **첫 빈칸이 행 우선 순서상 앞선 칸** |
+| **L-01b** | 같은 조건, 두 번째 0 위치 고정 | 동일 호출 | **두 번째 좌표**가 row-major로 두 번째 빈칸과 일치 |
+| **L-01c** | (선택) 1-index 정책이 이 함수에도 적용되면 기대 좌표 범위 1~4 | 동일 | 내부 표현이 0-index라면 테스트에서만 1-index로 변환해 검증하거나, 함수 계약을 문서대로 직접 검증 |
+
+**Invariant 보호 내용**  
+“빈칸은 정확히 두 곳이며, **탐색 순서는 row-major**” — `solution()`의 “first blank” 전략이 의존하는 **순서 불변식**.
+
+**RED 상태**  
+함수 미구현·빈 반환·순서 틀리면 전부 실패.
+
+---
+
+## L-02 — `find_not_exist_nums()`
+
+| Test ID | Given | When | Then |
+|---------|--------|------|------|
+| **L-02a** | 0 두 개로 인해 **빠진 숫자가 정확히 두 개**인 보드(나머지 14개는 1~16 중 중복 없이 채움) | `find_not_exist_nums(grid)` | 길이 2, 원소는 그 두 숫자 |
+| **L-02b** | 누락 쌍이 (예: 3, 15)처럼 **오름차순이 아닌 순서로 배치되어도** 그리드만 유효하면 | 동일 | 반환 **오름차순** `[min, max]` |
+
+**Invariant 보호 내용**  
+“14개는 채워져 있고 2개만 빠짐 → **누락 수는 2개**이고, API는 **정렬된 순서**로 돌려준다”는 **누락 집합·표현 불변식**.
+
+**RED 상태**  
+미구현 또는 순서/원소 오류 시 실패.
+
+---
+
+## L-03 — `is_magic_square()`
+
+| Test ID | Given | When | Then |
+|---------|--------|------|------|
+| **L-03a** | 알려진 **완성 4×4 마방진**(합 34) | `is_magic_square(grid)` | `true` |
+| **L-03b** | 한 칸만 틀려 **행 합이 서로 다름** | 동일 | `false` |
+| **L-03c** | 행은 맞지만 **열 합 하나 다름** | 동일 | `false` |
+| **L-03d** | 행·열은 맞지만 **대각선 하나만 34 아님** | 동일 | `false` |
+| **L-03e** | 모든 행·열·대각선이 **서로 같지만 34가 아님**(가능한 작은 반례가 있으면 사용) | 동일 | `false` (계약: 마방진 상수 **34**와 일치해야 함) |
+
+**Invariant 보호 내용**  
+“완성 그리드는 **모든 행·열·두 대각선의 합이 동일하고 그 값이 34**”라는 **마방진 판정 불변식**.
+
+**RED 상태**  
+항상 `false`/`true` 고정이거나 미구현이면 해당 케이스에서 실패.
+
+---
+
+## L-04 — `solution()`
+
+| Test ID | Given | When | Then |
+|---------|--------|------|------|
+| **L-04a** | 유효 보드, **row-major 첫 빈칸에 작은 누락 수를 넣으면** 마방진 완성 | `solution(grid)` | 6-length, 1-index, 그 배치와 일치 |
+| **L-04b** | **첫 빈칸에 작은 수를 넣으면 실패·역순(큰 수를 첫 칸에)하면 성공**하는 보드(시나리오에 맞는 픽스처) | 동일 | 최종 정답이 **reverse 시도 후**의 배치와 일치(전략 계약 검증) |
+| **L-04c** | 임의 유효 보드 하나 | 동일 | `length == 6`, 좌표 1~4, 채운 두 값이 `find_not_exist_nums` 결과와 일치 |
+| **L-04d** | L-04a 보드로 채운 뒤 | (테스트 내에서) `is_magic_square(완성 그리드)` | `true` |
+
+**Invariant 보호 내용**  
+“유효 입력에 대해 **탐색 순서(작은 수 → 첫 빈칸, 실패 시 reverse)**로 해를 내고, 결과는 **`[r1,c1,n1,r2,c2,n2]` 1-index·길이 6**이며 **실제로 마방진**”이라는 **솔루션 의미·전략 불변식**.
+
+**RED 상태**  
+`solution` 없음·잘못된 길이·0-index·잘못된 탐색 순서면 실패.
+
+---
+
+## 요약
+
+| 트랙 | 역할 |
+|------|------|
+| **UI RED** | 크기·빈칸 수·범위·중복·출력 길이 6·1-index 좌표까지 **경계와 응답 형식**을 한 번에 고정한다. |
+| **Logic RED** | 빈칸 순서·누락 수·마방진 판정·솔루션 전략과 결과가 **서로 맞물리도록** 단위 테스트로 고정한다. |
+
+지금은 **설계·계약·기대만** 정의한 상태이며, 구현이 없으면 위 테스트는 모두 **RED**로 남는 것이 맞습니다.
+
+---
+
+**User**
+
+지금 작업한 내용을 @Report/08_MagicSquare_TestCase_Report.md 에 업데이트 해줘
+
+---
+
+**Cursor**
+
+보고서 파일 구조 확인 후 Dual-Track RED 테스트 내용을 반영합니다.
+
+
+
+목차·메타데이터를 갱신하고, Dual-Track UI RED / Logic RED 설계 섹션을 추가합니다.
+
+
+
+반영했습니다. 변경 요약은 다음과 같습니다.
+
+### 변경 사항
+
+1. **표지 메타데이터** — 목적·산출물에 Dual-Track RED 및 §12(UI-01~06, L-01~04)를 명시했습니다.
+
+2. **§1.2 목적** — “RED 전용 계약” 행을 추가해 §12가 GREEN/REFACTOR·구현 본문과 구분되도록 했습니다.
+
+3. **목차** — [§12 Dual-Track RED — UI / Logic 실패 테스트 설계](#12-dual-track-red--ui--logic-실패-테스트-설계) 링크를 넣었습니다.
+
+4. **§11.1 완료 사항** — Dual-Track RED 한 줄을 추가했습니다.
+
+5. **§11.2 핵심 설계 결정** — 항목 5로 Dual-Track RED(§12)를 넣었습니다.
+
+6. **§11.4 Dual-Track RED와의 정렬** — `UI-*` / `L-*`와 기존 `TC-MS-*` 그룹의 대응 표를 추가했습니다.
+
+7. **§12 (신규)** — 이전에 정리한 내용을 보고서 톤에 맞춰 옮겼습니다.  
+   - Track A: UI-01~06 표(Scenario / Invariant)  
+   - Track B: `find_blank_coords`(L-01a~c), `find_not_exist_nums`(L-02a~b), `is_magic_square`(L-03a~e), `solution`(L-04a~d)  
+   - §12.3 RED 단계에서 허용·비허용 범위  
+   - 입력/출력/상수 34 요약, UI RED ↔ Logic RED 다이어그램
+
+8. **맺음말** — §12 참조 문구를 추가했습니다.
+
+파일 경로: `Report/08_MagicSquare_TestCase_Report.md`
 
