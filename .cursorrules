@@ -96,7 +96,7 @@ architecture:
       - "BlankFinder → MissingNumberFinder → SolvingStrategy 순서 조율"
       - "Domain 예외를 그대로 전파 (변환하지 않음)"
       - "선택적 Application Facade 역할 수행"
-    components: ["MagicSquareSolver", "SolvingStrategy"]
+    components: ["MagicSquareSolver"]
     must_not:
       - "입력 유효성 검증 수행 (Boundary 책임)"
       - "저장/로드 직접 수행 (Data Layer 책임)"
@@ -173,13 +173,14 @@ testing:
     domain_layer: "95%"
     ui_boundary: "85%"
     data_layer: "80%"
-  total_test_cases: 71
+  total_test_cases: 74
   test_distribution:
     - "Domain — BlankFinder:        BF-T01~T06  (6개)"
     - "Domain — MissingNumberFinder: MF-T01~T05  (5개)"
     - "Domain — MagicSquareValidator: MV-T01~T07 (7개)"
     - "Domain — SolvingStrategy:     SS-T01~T05  (5개)"
     - "Domain — SolveResult VO:      SR-T01~T06  (6개)"
+    - "Control — MagicSquareSolver:  SV-T01~T03  (3개)"
     - "UI Boundary:                  UI-T01~T19  (19개)"
     - "Data Layer:                   DT-T01~T13  (13개)"
     - "Integration (정상):           IT-S01~S04  (4개)"
@@ -278,12 +279,21 @@ file_structure:
   # │   ├── matrix_repository.py    ← 저장소 인터페이스 (Protocol)
   # │   └── in_memory_repository.py ← 기본 구현체
   # │
-  # ├── exceptions/                 ← 도메인 예외 정의
+  # ├── exceptions/                 ← 예외 정의 (레이어별 분리)
   # │   ├── __init__.py
-  # │   ├── domain_exceptions.py    ← InvalidBlankCountError, NoSolutionError 등
-  # │   └── boundary_exceptions.py  ← 에러코드 7종 매핑
+  # │   ├── domain_exceptions.py    ← MagicSquareError (base)
+  # │   │                               NoSolutionError        (INV-07)
+  # │   │                               InvalidBlankCountError (INV-04)
+  # │   │                               InvalidMissingCountError (INV-02)
+  # │   │                               IncompleteGridError    (INV-01)
+  # │   ├── data_exceptions.py      ← DataLayerError (base)
+  # │   │                               DuplicateIdError
+  # │   │                               NotFoundError
+  # │   └── boundary_exceptions.py  ← 에러코드 7종 상수
+  # │                                   SuccessResponse (TypedDict)
+  # │                                   ErrorResponse   (TypedDict)
   # │
-  # └── tests/                      ← 전체 테스트 (71개)
+  # └── tests/                      ← 전체 테스트 (74개)
   #     ├── __init__.py
   #     ├── conftest.py             ← 공통 fixture 정의
   #     ├── entity/
@@ -294,6 +304,8 @@ file_structure:
   #     │   └── test_solve_result.py          ← SR-T01~T06
   #     ├── boundary/
   #     │   └── test_input_validator.py       ← UI-T01~T19
+  #     ├── control/
+  #     │   └── test_magic_square_solver.py   ← SV-T01~T03
   #     ├── data/
   #     │   └── test_in_memory_repository.py  ← DT-T01~T13
   #     └── integration/
@@ -306,6 +318,11 @@ file_structure:
     - "data/"
     - "exceptions/"
     - "tests/"
+    - "tests/entity/"
+    - "tests/control/"
+    - "tests/boundary/"
+    - "tests/data/"
+    - "tests/integration/"
 
 ################################################################################
 # ai_behavior

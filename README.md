@@ -5,7 +5,7 @@
 | 언어 | Python 3.10+ |
 | 아키텍처 | ECB (Entity–Control–Boundary) |
 | 방법론 | Dual-Track TDD · Concept-to-Code Traceability |
-| 테스트 | 71개 목표 (Domain 29 · UI 19 · Data 13 · Integration 10) |
+| 테스트 | 74개 목표 (Domain 29 · Control 3 · UI 19 · Data 13 · Integration 10) |
 | 상세 요구 | [PRD.md](PRD.md) (v1.1.0) |
 | 에이전트 규칙 | [../.cursorrules](../.cursorrules) |
 
@@ -109,7 +109,7 @@ Why #3: TDD는 그 설계 오류를 코드 이전에 잡는 방법이다
                         ▼
 ┌─────────────────────────────────────────────────────────┐
 │  Control Layer   ── 비즈니스 흐름 조율                  │
-│  MagicSquareSolver · SolvingStrategy                    │
+│  MagicSquareSolver                                      │
 └───────────────────────┬─────────────────────────────────┘
                         │ 의존 (단방향)
                         ▼
@@ -117,6 +117,7 @@ Why #3: TDD는 그 설계 오류를 코드 이전에 잡는 방법이다
 │  Entity Layer    ── 도메인 순수 로직 (외부 의존 없음)   │
 │  MagicSquare · Cell · CellValue · MissingPair · SolveResult │
 │  BlankFinder · MissingNumberFinder · MagicSquareValidator   │
+│  SolvingStrategy                                        │
 └─────────────────────────────────────────────────────────┘
                         │
                         ▼
@@ -158,11 +159,15 @@ magic_square/
 │   ├── matrix_repository.py       ← Protocol 정의
 │   └── in_memory_repository.py
 ├── exceptions/
-│   ├── domain_exceptions.py
-│   └── boundary_exceptions.py
+│   ├── domain_exceptions.py       ← MagicSquareError · NoSolutionError
+│   │                                 InvalidBlankCountError · InvalidMissingCountError
+│   │                                 IncompleteGridError
+│   ├── data_exceptions.py         ← DataLayerError · DuplicateIdError · NotFoundError
+│   └── boundary_exceptions.py     ← 에러코드 7종 상수 · SuccessResponse · ErrorResponse
 └── tests/
     ├── entity/   ← BF / MF / MV / SS / SR
     ├── boundary/ ← UI-T01~T19
+    ├── control/  ← SV-T01~T03
     ├── data/     ← DT-T01~T13
     └── integration/ ← IT-S01~S04, IT-F01~F06
 ```
@@ -179,10 +184,12 @@ Track A (UI Boundary)                  Track B (Domain Logic)
 대상: 입력 검증 + 응답 포맷            대상: 순수 도메인 로직
 격리: Domain을 Mock으로 대체           격리: 외부 의존 없음
 테스트: UI-T01~T19 (19개)             테스트: BF/MF/MV/SS/SR (29개)
+                                       ← SolvingStrategy 포함
 
         ↘                                      ↙
           Integration (IT-S01~S04, IT-F01~F06)
                Data Layer (DT-T01~T13)
+               Control Layer (SV-T01~T03)
 ```
 
 > Track A 테스트에서 실제 Domain 로직에 의존하는 것은 **금지**다.
@@ -256,7 +263,7 @@ Track A (UI Boundary)                  Track B (Domain Logic)
 | TASK-025 | REQ-003 | L2 | IT-S04 `test_save_load_solve` | Data | ⬜ TODO |
 | TASK-026 | REQ-004·REQ-008 | L2 | `test_integration_edge_blanks` | 통합 | ⬜ TODO |
 | TASK-027 | REQ-001~REQ-009 | L0~L3 | Traceability 대조 | 품질 게이트 | ⬜ TODO |
-| TASK-028 | REQ-001~REQ-009 | L0~L3 | `pytest` 71개 전체 GREEN | 품질 게이트 | ⬜ TODO |
+| TASK-028 | REQ-001~REQ-009 | L0~L3 | `pytest` 74개 전체 GREEN | 품질 게이트 | ⬜ TODO |
 | TASK-029 | — | — | ECB import 방향 점검 | 품질 게이트 | ⬜ TODO |
 | TASK-030 | REQ-001~REQ-009 | L1~L3 | UX Contract 단언 | Boundary+통합 | ⬜ TODO |
 
@@ -525,8 +532,8 @@ REQ: REQ-001~REQ-009 (전체 추적성 검증)
   - [ ] TASK-027-3: Traceability Matrix (§5.2) 빠진 항목 없음 확인
   > [Checkpoint] INV-01~INV-09 전부 테스트 ID와 1:1 연결 확인
 
-- [ ] **TASK-028** · `pytest` 71개 전체 GREEN
-  - [ ] TASK-028-1: `pytest tests/ -v` 실행 — 71개 전체 GREEN 확인
+- [ ] **TASK-028** · `pytest` 74개 전체 GREEN
+  - [ ] TASK-028-1: `pytest tests/ -v` 실행 — 74개 전체 GREEN 확인
   - [ ] TASK-028-2: `pytest tests/ --cov=entity --cov=boundary --cov=data --cov-report=term-missing` — 커버리지 목표 달성 확인
   > [Validate] Domain ≥ 95% · UI ≥ 85% · Data ≥ 80%
 
@@ -598,7 +605,7 @@ rg --type py "from control|import control" entity/
 | **SC-04** | Invariant → Test 추적 가능성 | INV-01~INV-09 전체 커버 | 테스트 주석 `INV-xx` 확인 |
 | **SC-05** | UI Boundary 테스트 커버리지 | ≥ 85% | `pytest --cov=boundary` |
 | **SC-06** | Data Layer 테스트 커버리지 | ≥ 80% | `pytest --cov=data` |
-| **SC-07** | 전체 테스트 케이스 통과 | 71개 전체 GREEN | `pytest tests/ -v` |
+| **SC-07** | 전체 테스트 케이스 통과 | 74개 전체 GREEN | `pytest tests/ -v` |
 | **SC-08** | ECB 레이어 의존성 방향 위반 | 0건 | import 방향 수동 검토 |
 | **SC-09** | 입력 검증 + 풀이 응답 시간 | < 100ms | `pytest-benchmark` |
 

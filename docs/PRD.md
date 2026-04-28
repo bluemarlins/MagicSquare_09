@@ -23,7 +23,9 @@
 4. [입출력 계약 (고정)](#4-입출력-계약-고정)
 5. [Concept → Rule → Use Case → Contract → Test → Component 추적성](#5-concept--rule--use-case--contract--test--component-추적성)
 6. [기능 요구사항 — Dual-Track 분리](#6-기능-요구사항--dual-track-분리)
-   - 6.6 [Dual-Track 언어 체계 & 3단 매핑 표](#66-dual-track-언어-체계--3단-매핑-표)
+   - 6.5 [예외 클래스 명세](#65-예외-클래스-명세-변경-금지)
+   - 6.6 [핵심 유스케이스 흐름](#66-핵심-유스케이스-흐름)
+   - 6.7 [Dual-Track 언어 체계 & 3단 매핑 표](#67-dual-track-언어-체계--3단-매핑-표)
 7. [에러 정책](#7-에러-정책)
 8. [아키텍처 제약 (ECB)](#8-아키텍처-제약-ecb)
 9. [Gherkin 시나리오 (L0~L3)](#9-gherkin-시나리오-l0l3)
@@ -86,7 +88,7 @@ Why #3: TDD는 그 설계 오류를 코드 이전에 잡는 방법이다
 | 조건 | 이 PRD의 근거 | 판정 |
 |------|-------------|------|
 | **명확성** | UX Contract("보인다/안 보인다") + Logic Rule("허용한다/거부한다") 이중 언어 체계로 표현 | ✅ |
-| **측정 가능성** | SC-01~SC-09 수치 목표 + 응답 시간 < 100ms + 테스트 71개 GREEN | ✅ |
+| **측정 가능성** | SC-01~SC-09 수치 목표 + 응답 시간 < 100ms + 테스트 74개 GREEN | ✅ |
 | **달성 가능성** | Python 단일 스택, InMemory 저장소, 4×4 고정 범위 | ✅ |
 | **관련성** | INV-01~INV-09 → 테스트 ID → 컴포넌트 수직 추적 체인 완비 | ✅ |
 | **완결성** | L0(초기화) ~ L3(실패) 전 레벨 시나리오 + 에러 코드 7종 전수 커버 | ✅ |
@@ -232,6 +234,7 @@ Track A (UI Boundary)                  Track B (Domain Logic)
                                        
         ↘                                       ↙
               Integration (IT-S01~S04, IT-F01~F06, 10개)
+                    Control Layer (SV-T01~T03, 3개)
                     Data Layer (DT-T01~T13, 13개)
 ```
 
@@ -321,7 +324,41 @@ Track A (UI Boundary)                  Track B (Domain Logic)
 
 ---
 
-### 6.5 핵심 유스케이스 흐름
+### 6.5 예외 클래스 명세 (변경 금지)
+
+> **레이어별 예외 분리 원칙:** 도메인 예외는 Entity 레이어, Data 예외는 Data 레이어, Boundary는 도메인 예외를 `ErrorResponse`로 변환한다.
+
+#### `exceptions/domain_exceptions.py`
+
+| 클래스 | 상속 | 발생 위치 | 보호 Invariant | 설명 |
+|--------|------|-----------|----------------|------|
+| `MagicSquareError` | `Exception` | — | — | 모든 도메인 예외의 기반 클래스 |
+| `NoSolutionError` | `MagicSquareError` | `SolvingStrategy` | INV-07 | 두 조합 모두 마방진 조건 불만족 |
+| `InvalidBlankCountError` | `MagicSquareError` | `BlankFinder` | INV-04 | 빈칸(0) 수 ≠ 2 |
+| `InvalidMissingCountError` | `MagicSquareError` | `MissingNumberFinder` | INV-02 | 누락 숫자 수 ≠ 2 |
+| `IncompleteGridError` | `MagicSquareError` | `MagicSquareValidator` | INV-01 | 0 포함 격자에서 합산 검증 시도 |
+
+#### `exceptions/data_exceptions.py`
+
+| 클래스 | 상속 | 발생 위치 | 설명 |
+|--------|------|-----------|------|
+| `DataLayerError` | `Exception` | — | 모든 Data Layer 예외의 기반 클래스 |
+| `DuplicateIdError` | `DataLayerError` | `InMemoryRepository.save()` | 이미 존재하는 id로 저장 시도 |
+| `NotFoundError` | `DataLayerError` | `InMemoryRepository.load()` / `.delete()` | 존재하지 않는 id 접근 |
+
+#### `exceptions/boundary_exceptions.py`
+
+| 이름 | 종류 | 설명 |
+|------|------|------|
+| `ErrorCode` | `str` 상수 (7종) | `INVALID_INPUT`, `INVALID_GRID_SIZE`, `INVALID_CELL_VALUE`, `INVALID_BLANK_COUNT`, `DUPLICATE_VALUE`, `NO_SOLUTION`, `INTERNAL_ERROR` |
+| `ErrorResponse` | `TypedDict` | `{"errorCode": str, "message": str}` |
+| `SuccessResponse` | `TypedDict` | `{"result": list[int]}` — 길이 항상 6 |
+
+> **전파 규칙:** Control 레이어는 도메인 예외를 변환 없이 그대로 전파한다. Boundary 레이어만 도메인 예외를 `ErrorResponse`로 변환한다. `DataLayerError` 계열은 Boundary에서 `INTERNAL_ERROR`로 변환한다.
+
+---
+
+### 6.6 핵심 유스케이스 흐름
 
 ```
 [정상 흐름 — UC-I01]
@@ -342,7 +379,7 @@ Track A (UI Boundary)                  Track B (Domain Logic)
 
 ---
 
-### 6.6 Dual-Track 언어 체계 & 3단 매핑 표
+### 6.7 Dual-Track 언어 체계 & 3단 매핑 표
 
 > **MLOps 방법론 핵심 원칙:** UI Track과 Logic Track은 서로 다른 언어로 RED를 작성한다.  
 > UI 테스트는 로직을 모르고, Logic 테스트는 UI를 모른다.
@@ -421,13 +458,13 @@ Track A (UI Boundary)                  Track B (Domain Logic)
        ▼
 [Control Layer]           비즈니스 흐름 조율
   MagicSquareSolver
-  SolvingStrategy
        │ 의존 (단방향)
        ▼
 [Entity Layer]            도메인 순수 로직 — 외부 의존 없음
   MagicSquare (Entity)
   Cell, CellValue, MissingPair, SolveResult (Value Objects)
   BlankFinder, MissingNumberFinder, MagicSquareValidator (Domain Services)
+  SolvingStrategy (Domain Service)
 
 [Data Layer]              저장소 추상화 (Protocol 수준)
   MatrixRepository (Protocol)
@@ -480,10 +517,12 @@ magic_square/
 │   └── in_memory_repository.py
 ├── exceptions/
 │   ├── domain_exceptions.py
+│   ├── data_exceptions.py
 │   └── boundary_exceptions.py
 └── tests/
     ├── entity/
     ├── boundary/
+    ├── control/
     ├── data/
     └── integration/
 ```
@@ -761,7 +800,7 @@ Feature: 4×4 마방진 두 빈칸 채우기
 
 ## 10. 테스트 계획
 
-### 10.1 전체 테스트 분포 (71개)
+### 10.1 전체 테스트 분포 (74개)
 
 | 레이어 | 테스트 ID 범위 | 케이스 수 | 커버리지 목표 |
 |--------|--------------|----------|-------------|
@@ -771,12 +810,13 @@ Feature: 4×4 마방진 두 빈칸 채우기
 | Domain — SolvingStrategy | SS-T01~T05 | 5개 | |
 | Domain — SolveResult VO | SR-T01~T06 | 6개 | |
 | **Domain 소계** | | **29개** | **≥ 95%** |
+| Control — MagicSquareSolver | SV-T01~T03 | 3개 | **≥ 85%** |
 | UI Boundary | UI-T01~T19 | 19개 | **≥ 85%** |
 | Data Layer | DT-T01~T13 | 13개 | **≥ 80%** |
 | Integration — 정상 | IT-S01~S04 | 4개 | |
 | Integration — 실패 | IT-F01~F06 | 6개 | |
 | **통합 소계** | | **10개** | |
-| **전체 합계** | | **71개** | |
+| **전체 합계** | | **74개** | |
 
 ### 10.2 테스트 세부 분류
 
@@ -814,6 +854,7 @@ Feature: 4×4 마방진 두 빈칸 채우기
 ### 10.4 Mock 정책
 
 - **UI Boundary 테스트:** Domain은 반드시 `Mock`으로 대체. 실제 Domain 로직에 의존하는 UI 테스트 작성 금지.
+- **Control 테스트 (SV-T01~T03):** Entity 서비스(SolvingStrategy 등)는 `Mock`으로 대체. 실제 Entity 로직 호출 금지.
 - **Domain 테스트:** 외부 의존 없음. 순수 Python — `pytest`만 사용.
 - **Data 테스트:** `InMemoryRepository` 사용. 실제 파일 I/O 또는 네트워크 호출 금지.
 - **Mock 라이브러리:** `pytest-mock` 또는 `unittest.mock`
@@ -914,7 +955,7 @@ BLANK_COUNT: int = 2
 | **SC-04** | Invariant → Test 추적 가능성 | INV-01~INV-09 전체 커버 | 테스트 주석 `INV-xx` 확인 |
 | **SC-05** | UI Boundary 테스트 커버리지 | ≥ 85% | `pytest --cov=boundary` |
 | **SC-06** | Data Layer 테스트 커버리지 | ≥ 80% | `pytest --cov=data` |
-| **SC-07** | 전체 테스트 케이스 통과 | 71개 전체 GREEN | `pytest tests/ -v` |
+| **SC-07** | 전체 테스트 케이스 통과 | 74개 전체 GREEN | `pytest tests/ -v` |
 | **SC-08** | ECB 레이어 의존성 방향 위반 | 0건 | import 방향 수동 검토 |
 | **SC-09** | 입력 검증 + 풀이 응답 시간 | < 100ms | `pytest-benchmark` |
 
@@ -928,7 +969,7 @@ BLANK_COUNT: int = 2
 |------|------|
 | 4×4 격자 두 빈칸 채우기 | 입력 `int[4][4]`, 출력 `int[6]` |
 | ECB 레이어 분리 구현 | Boundary / Control / Entity / Data |
-| Dual-Track TDD 71개 테스트 | Track A(UI) + Track B(Domain) + Integration + Data |
+| Dual-Track TDD 74개 테스트 | Track A(UI) + Track B(Domain) + Control + Integration + Data |
 | Repository Pattern (InMemory) | Protocol 정의 + InMemoryRepository 구현 |
 | 에러 코드 7종 처리 | 표준 메시지 문구 포함 |
 | 커버리지 목표 달성 검증 | Domain ≥ 95% / UI ≥ 85% / Data ≥ 80% |
@@ -977,7 +1018,7 @@ BLANK_COUNT: int = 2
 | **Step 1** — 문제 인식 | INV-01~INV-09 도출 및 문서화 | 9개 불변조건 전체 명문화 | INV-01~INV-09 |
 | **Step 2** — 계약 정의 | 입력·출력·예외 3개 계약 스키마 작성 | 에러 코드 7종 + `int[6]` 포맷 확정 | INV-03~INV-09 |
 | **Step 3** — Domain 분리 | SRP 기반 컴포넌트 4종 설계 | 각 컴포넌트의 책임과 역설계 예방 확인 | INV-01~INV-04 |
-| **Step 4** — Dual-Track TDD | Track A/B 병렬 RED→GREEN→REFACTOR | 71개 전체 GREEN + 커버리지 목표 달성 | INV-01~INV-09 전체 |
+| **Step 4** — Dual-Track TDD | Track A/B 병렬 RED→GREEN→REFACTOR | 74개 전체 GREEN + 커버리지 목표 달성 | INV-01~INV-09 전체 |
 | **Step 5** — 회귀 보호 | 엣지·오류·실패 케이스 추가 | 매직 넘버 0건 + ECB 위반 0건 | INV-01~INV-09 전체 |
 
 ---
