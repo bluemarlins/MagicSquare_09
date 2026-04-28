@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 
 from tests.red_helpers import DURER_MAGIC_SQUARE, copy_grid, load_attr
@@ -47,3 +49,27 @@ class TestSolutionContractRed:
         assert 1 <= c1 <= 4
         assert 1 <= r2 <= 4
         assert 1 <= c2 <= 4
+
+
+class TestMagicSquareControllerDictResponse:
+    """MagicSquareController가 dict 응답을 언랩하는 경로를 검증한다."""
+
+    def test_cov_ctrl_01_solve_unwraps_dict_result_from_solver(self) -> None:
+        """solver가 {'result': [...]} dict를 반환할 때 내부 list를 추출한다.
+
+        Covers: magic_square_controller.py line 56
+        """
+        from src.boundary.magic_square_controller import MagicSquareController
+
+        mock_validator = MagicMock()
+        mock_validator.validate.return_value = None
+
+        mock_solver = MagicMock()
+        mock_solver.solve.return_value = {"result": [2, 4, 8, 4, 4, 1]}
+
+        controller = MagicSquareController(
+            validator=mock_validator, solver=mock_solver
+        )
+        result = controller.solve([[0] * 4] * 4)
+
+        assert result == [2, 4, 8, 4, 4, 1]

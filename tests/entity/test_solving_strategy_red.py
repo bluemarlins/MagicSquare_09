@@ -191,3 +191,21 @@ class TestSolvingStrategyRed:
             "src.entity.services.magic_square_validator", "is_magic_square"
         )
         assert is_magic_square(completed) is True
+
+    def test_cov_ss_01_raises_no_solution_error_when_missing_count_not_two(
+        self,
+    ) -> None:
+        """빈칸은 정확히 2개지만 중복 값으로 누락 숫자가 3개인 경우 NoSolutionError.
+
+        Covers: solving_strategy.py line 26
+        값 1이 중복(row 0, row 1) → 누락 집합 = {5, 15, 16} → len == 3 ≠ 2.
+        blank_finder 는 빈칸 2개를 정상 처리하므로 line 26 에 도달한다.
+        """
+        matrix = [
+            [1, 2, 3, 4],
+            [1, 6, 7, 8],
+            [9, 10, 11, 12],
+            [13, 14, 0, 0],
+        ]
+        with pytest.raises(self._no_solution_error()):
+            self._solution(matrix)
