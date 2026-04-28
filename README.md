@@ -609,9 +609,7 @@ rg --type py "from control|import control" entity/
 | 문서 | 용도 |
 |------|------|
 | [PRD.md](PRD.md) | 불변조건, 입출력 계약, Gherkin(L0~L3), 테스트 ID, Traceability (원본) |
-| [../Design/02_MagicSquare_TDD_CleanArchitecture_Design.md](../Design/02_MagicSquare_TDD_CleanArchitecture_Design.md) | TDD·레이어 설계 |
-| [../Design/04_MagicSquare_Epic_UserJourney_Design.md](../Design/04_MagicSquare_Epic_UserJourney_Design.md) | Epic·사용자 여정 |
-| `../Report/01` ~ `../Report/05` | 문제 정의, 방법론, PRD 작성 보고 |
+| `Report/05` ~ `Report/06` | PRD 작성 및 README 작성 보고 |
 
 ---
 
