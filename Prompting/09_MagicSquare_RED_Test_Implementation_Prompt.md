@@ -1,5 +1,5 @@
 # Test skeletons for RED principle
-_Exported on 4/28/2026 at 14:11:17 GMT+9 from Cursor (3.2.11)_
+_Exported on 4/28/2026 at 14:22:38 GMT+9 from Cursor (3.2.11)_
 
 ---
 
@@ -191,4 +191,119 @@ deactivate
 - GREEN 전환을 위한 후속 단계 제안
 
 원하시면 이어서 `Report/09...`를 기준으로 **체크리스트 버전(실행 완료 여부 체크박스)**으로도 변환해드릴게요.
+
+---
+
+**User**
+
+https://github.com/bluemarlins/MagicSquare_09 에 작업한 모든 내용을 업로드 해줘 
+
+---
+
+**Cursor**
+
+요청하신 대로 지금 작업한 변경사항 전체를 커밋하고 GitHub 원격(`bluemarlins/MagicSquare_09`)에 푸시하겠습니다. 먼저 현재 변경 내역과 브랜치 상태를 확인한 뒤 안전하게 진행할게요.
+
+PowerShell 구문 이슈(`&&`)가 있어서 같은 확인을 `;`로 다시 실행해 브랜치/변경 내용을 정확히 점검하겠습니다.
+
+원격 업로드 진행하겠습니다. 다만 `.venv/`는 로컬 실행 산출물이라 제외하고, 나머지 변경 파일(문서/리포트/프롬프팅/테스트)은 모두 커밋 후 `origin/red`로 푸시하겠습니다.
+
+테스트 실행 중 생성된 `__pycache__/*.pyc`가 함께 스테이징되어서, 이 파일들만 제외하고 다시 정리하겠습니다.
+
+업로드 완료했습니다.  
+현재 작업 내용은 GitHub `red` 브랜치에 푸시되었습니다.
+
+- 원격 저장소: [https://github.com/bluemarlins/MagicSquare_09](https://github.com/bluemarlins/MagicSquare_09)
+- 브랜치: `red`
+- 커밋: `460c102`
+- 커밋 메시지: `feat: add RED test skeleton suite from testcase specs`
+
+포함된 변경:
+- `docs/TestCases.md`
+- `Report/08_MagicSquare_TestCase_Report.md`
+- `Report/09_MagicSquare_RED_Test_Implementation_Report.md`
+- `Prompting/08_MagicSquare_TestCase_Prompt.md`
+- `Prompting/09_MagicSquare_RED_Test_Implementation_Prompt.md`
+- `tests/` 하위 RED 테스트 파일 6개
+
+참고:
+- `.venv/`와 `tests/**/__pycache__/`는 로컬 실행 산출물이라 업로드에서 제외했습니다.  
+원하시면 이것도 `.gitignore`에 바로 정리해드릴게요.
+
+---
+
+**User**
+
+이제 실제 RED Test 코드를 작성해줘
+
+---
+
+**Cursor**
+
+좋습니다. 이제 스켈레톤을 실제 시나리오 기반 RED 테스트로 바꾸겠습니다.  
+문서의 TC/UI/L 시나리오에 맞춰 입력 데이터·기대값·예외 단언까지 넣고, 구현이 없어서 실패하더라도 왜 실패했는지 드러나게 작성할게요.
+
+테스트 공통 import/픽스처 헬퍼를 먼저 추가했습니다. 이제 각 테스트 파일을 실제 Given/When/Then 단언으로 교체하겠습니다.
+
+실제 RED 테스트 코드로 전환 완료했습니다.  
+이제 스켈레톤(`pytest.fail` 1줄) 대신 **입력 데이터 + 호출 + 기대 단언**이 들어간 상태입니다.
+
+## 변경한 파일
+
+- `tests/red_helpers.py`
+  - 공통 Dürer 보드, deep copy, 동적 import 헬퍼(`load_attr`) 추가
+- `tests/entity/test_domain_constants.py`
+  - `MAGIC_CONSTANT=34`, `GRID_SIZE=4`, `BLANK_COUNT=2` 실제 단언
+- `tests/entity/test_blank_finder_red.py`
+  - `TC-MS-A-001~005`, `L-01a~c` 실제 보드 기반 단언/예외 검증
+- `tests/entity/test_magic_square_validator_red.py`
+  - `TC-MS-B-001~005`, `L-03a~e` 행/열/대각선/상수 34 단언
+- `tests/entity/test_solving_strategy_red.py`
+  - `L-02a~b`, `TC-MS-C-001~008`, `L-04a~d` 실제 시나리오 단언
+- `tests/boundary/test_input_validator_red.py`
+  - `TC-MS-D-001~006`, `UI-01~04` 입력 검증 실패 케이스 단언
+- `tests/boundary/test_solution_contract_red.py`
+  - `UI-05~06` 출력 길이/1-index 계약 단언
+
+## 실행 검증
+
+실행:
+- `python -m pytest tests -q`
+
+결과:
+- **45 failed (의도된 RED 상태 유지)**
+- 기존처럼 단순 fail 메시지 실패가 아니라,  
+  현재는 **실제 계약 단언을 수행하다가 모듈 미구현(`entity`, `boundary` 미존재)로 RED 실패**가 발생합니다.
+
+즉, 다음 GREEN 단계에서 모듈/심볼을 하나씩 구현하면 테스트가 점진적으로 살아나는 형태로 바뀌었습니다.
+
+원하면 다음으로 `TASK-001-1`부터 바로 GREEN 전환(`entity/constants.py`)까지 이어서 진행하겠습니다.
+
+---
+
+**User**
+
+작업 내용을 @Report/09_MagicSquare_RED_Test_Implementation_Report.md 보고서에도 업데이트 해줘
+
+---
+
+**Cursor**
+
+좋습니다. 방금 진행한 “스켈레톤 → 실제 RED 단언 코드” 전환 내용을 `Report/09_MagicSquare_RED_Test_Implementation_Report.md`에 반영하겠습니다. 기존 섹션을 확장해서 최신 상태가 한 번에 보이도록 업데이트할게요.
+
+요청하신 내용 반영해서 `Report/09_MagicSquare_RED_Test_Implementation_Report.md` 업데이트 완료했습니다.
+
+주요 반영점:
+- 보고서 성격을 **스켈레톤 + 실제 RED 단언 코드 구현**으로 확장
+- 산출물에 `tests/red_helpers.py` 추가 반영(총 7개 파일)
+- 작업 흐름을 2단계로 명확화
+  - 1차: 스켈레톤 RED
+  - 2차: 실제 Given/When/Then 단언 RED
+- 새 섹션 추가: **4.4 스켈레톤 → 실제 RED 단언 전환 내용**
+- 실행 결과 섹션 보강
+  - 기존 `pytest.fail` 기반 실패
+  - 현재 `ModuleNotFoundError`/심볼 미구현 기반 실패로 전환됨을 명시
+- 린트 확인 완료(문제 없음)
+
+원하면 이 변경도 바로 커밋/푸시까지 이어서 처리해드릴게요.
 
