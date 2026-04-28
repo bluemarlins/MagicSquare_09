@@ -6,24 +6,27 @@
 |------|------|
 | **프로젝트명** | Magic Square (4×4) |
 | **문서 유형** | Product Requirements Document (PRD) |
-| **버전** | 1.0.0 |
-| **작성일** | 2026-04-27 |
-| **목적** | Dual-Track TDD + Clean Architecture 훈련 — Concept-to-Code Traceability 포함 |
-| **참조 문서** | Report/01 (문제 정의) · Report/02 (TDD + Clean Architecture) · Report/03 (.cursorrules) · Report/04 (Epic + User Journey) |
+| **버전** | 1.1.0 |
+| **작성일** | 2026-04-28 |
+| **목적** | Dual-Track TDD + Clean Architecture 훈련 — Concept-to-Code Traceability 포함 (MLOps 방법론 적용) |
+| **방법론** | MLOps 과정 Dual-Track UI + Logic TDD — UX Contract / Logic Rule 이중 언어 체계 |
+| **참조 문서** | Report/01 (문제 정의) · Report/02 (TDD + Clean Architecture) · Report/03 (.cursorrules) · Report/04 (Epic + User Journey) · MLOps 과정 6~7교시 슬라이드 |
 
 ---
 
 ## 목차
 
 1. [배경 및 목적](#1-배경-및-목적)
+   - 1.4 [PRD 5조건 체크](#14-prd-5조건-체크)
 2. [Epic — 훈련 목표](#2-epic--훈련-목표)
 3. [도메인 불변조건](#3-도메인-불변조건)
 4. [입출력 계약 (고정)](#4-입출력-계약-고정)
 5. [Concept → Rule → Use Case → Contract → Test → Component 추적성](#5-concept--rule--use-case--contract--test--component-추적성)
 6. [기능 요구사항 — Dual-Track 분리](#6-기능-요구사항--dual-track-분리)
+   - 6.6 [Dual-Track 언어 체계 & 3단 매핑 표](#66-dual-track-언어-체계--3단-매핑-표)
 7. [에러 정책](#7-에러-정책)
 8. [아키텍처 제약 (ECB)](#8-아키텍처-제약-ecb)
-9. [Gherkin 시나리오](#9-gherkin-시나리오)
+9. [Gherkin 시나리오 (L0~L3)](#9-gherkin-시나리오-l0l3)
 10. [테스트 계획](#10-테스트-계획)
 11. [비기능 요구사항 및 개발 원칙](#11-비기능-요구사항-및-개발-원칙)
 12. [성공 기준](#12-성공-기준)
@@ -73,6 +76,20 @@ Why #3: TDD는 그 설계 오류를 코드 이전에 잡는 방법이다
 핵심: "무엇을 만들 것인가"가 아니라
       "어떤 조건이 성립할 때 성공인가"를 먼저 정의해야 한다
 ```
+
+---
+
+### 1.4 PRD 5조건 체크
+
+> **MLOps 과정 기준 — 좋은 PRD의 5조건: 명확성 · 측정 가능성 · 달성 가능성 · 관련성 · 완결성**
+
+| 조건 | 이 PRD의 근거 | 판정 |
+|------|-------------|------|
+| **명확성** | UX Contract("보인다/안 보인다") + Logic Rule("허용한다/거부한다") 이중 언어 체계로 표현 | ✅ |
+| **측정 가능성** | SC-01~SC-09 수치 목표 + 응답 시간 < 100ms + 테스트 71개 GREEN | ✅ |
+| **달성 가능성** | Python 단일 스택, InMemory 저장소, 4×4 고정 범위 | ✅ |
+| **관련성** | INV-01~INV-09 → 테스트 ID → 컴포넌트 수직 추적 체인 완비 | ✅ |
+| **완결성** | L0(초기화) ~ L3(실패) 전 레벨 시나리오 + 에러 코드 7종 전수 커버 | ✅ |
 
 ---
 
@@ -325,6 +342,48 @@ Track A (UI Boundary)                  Track B (Domain Logic)
 
 ---
 
+### 6.6 Dual-Track 언어 체계 & 3단 매핑 표
+
+> **MLOps 방법론 핵심 원칙:** UI Track과 Logic Track은 서로 다른 언어로 RED를 작성한다.  
+> UI 테스트는 로직을 모르고, Logic 테스트는 UI를 모른다.
+
+#### 언어 체계 정의
+
+| UX Contract 언어 (UI Track — Boundary 검증) | Logic Rule 언어 (Logic Track — Control+Entity 검증) |
+|--------------------------------------------|---------------------------------------------------|
+| 보인다 / 안 보인다 | 허용한다 / 거부한다 |
+| 가능하다 / 불가능하다 | 유지한다 / 중단한다 |
+| 활성화 / 비활성화 | 반환한다 / 차단한다 |
+| 포함한다 / 포함하지 않는다 | 계산한다 / 저장한다 |
+
+> ⚠ **동사로 끝나지 않는 To-Do는 테스트로 변환하지 말 것 — 판단(Decision)을 포함한 것만 변환 대상**
+
+---
+
+#### 3단 매핑 표 — Scenario → UX Contract → Logic Rule
+
+| Scenario | Gherkin 레벨 | UX Contract | Logic Rule |
+|----------|------------|-------------|------------|
+| MagicSquare 객체 초기화 | **L0** | — | 격자 구조가 유지된다 |
+| InMemoryRepository 초기화 | **L0** | — | 저장소가 준비된다 |
+| 조합 A로 마방진 완성 (n1 < n2) | **L1** | `"result"` 키가 포함된 응답이 보인다 | 해가 반환된다 |
+| 조합 B로 마방진 완성 (n1 > n2) | **L1** | n1 > n2인 응답이 보인다 | 두 번째 조합이 허용된다 |
+| 두 빈칸이 같은 행에 위치 | **L2** | r1 = r2인 응답이 보인다 | row-major 순서가 유지된다 |
+| 두 빈칸이 같은 열에 위치 | **L2** | c1 = c2인 응답이 보인다 | row-major 순서가 유지된다 |
+| 두 빈칸이 대각선에 위치 | **L2** | 정상 응답이 보인다 | 해가 반환된다 |
+| 누락 숫자가 1과 16인 극단값 | **L2** | 정상 응답이 보인다 | 극단값 쌍이 허용된다 |
+| 격자 저장 후 로드하여 재솔빙 | **L2** | 동일한 응답이 보인다 | 저장/로드가 유지된다 |
+| `None` 입력 | **L3** | `"INVALID_INPUT"` 오류가 보인다 | 입력이 차단된다 |
+| 격자가 4×4 아닌 경우 | **L3** | `"INVALID_GRID_SIZE"` 오류가 보인다 | 크기 검증이 거부된다 |
+| 셀 값이 0~16 범위 초과 | **L3** | `"INVALID_CELL_VALUE"` 오류가 보인다 | 값 범위 검증이 차단된다 |
+| 빈칸이 2개 아닌 경우 | **L3** | `"INVALID_BLANK_COUNT"` 오류가 보인다 | 탐색이 중단된다 |
+| 0 제외 중복 숫자 존재 | **L3** | `"DUPLICATE_VALUE"` 오류가 보인다 | 중복 탐지가 거부된다 |
+| 두 조합 모두 마방진 불만족 | **L3** | `"NO_SOLUTION"` 오류가 보인다 | 풀이가 중단된다 |
+| 크기 오류 + 값 오류 동시 존재 | **L3** | `"INVALID_GRID_SIZE"` 오류만 보인다 | 첫 번째 실패에서 검증이 중단된다 |
+| 값 오류 + 빈칸 오류 동시 존재 | **L3** | `"INVALID_CELL_VALUE"` 오류만 보인다 | 첫 번째 실패에서 검증이 중단된다 |
+
+---
+
 ## 7. 에러 정책
 
 ### 7.1 에러 코드 7종 및 표준 메시지 (변경 금지)
@@ -431,10 +490,19 @@ magic_square/
 
 ---
 
-## 9. Gherkin 시나리오
+## 9. Gherkin 시나리오 (L0~L3)
 
 > 아래 시나리오는 **검증 가능한 인수 조건**을 정의한다.  
-> 각 시나리오는 테스트 ID와 보호하는 Invariant에 매핑된다.
+> 각 시나리오는 테스트 ID, 보호하는 Invariant, **Gherkin 레벨(L0~L3)** 에 매핑된다.
+
+**레벨 정의:**
+
+| 레벨 | 의미 | 대응 시나리오 그룹 |
+|------|------|-----------------|
+| **L0** | 시스템 초기화 / 사전 조건 설정 | Scenario Group 0 |
+| **L1** | Happy Path — 정상 동작 | Scenario Group 1, 4 일부 |
+| **L2** | 경계값 / 엣지 케이스 | Scenario Group 5 |
+| **L3** | 실패 / 오류 케이스 | Scenario Group 2, 3, 4 일부 |
 
 ---
 
@@ -451,11 +519,42 @@ Feature: 4×4 마방진 두 빈칸 채우기
 
 ---
 
-#### Scenario Group 1: 정상 동작 시나리오
+#### Scenario Group 0: 시스템 초기화 시나리오 (L0)
+
+```gherkin
+  # IT-L0-01 — INV-03
+  # UX Contract: —  /  Logic Rule: 격자 구조가 유지된다
+  Scenario: MagicSquare 객체 초기화 (L0)
+    Given 4행 4열의 정수 배열이 준비되어 있다
+    When  MagicSquare 객체를 생성한다
+    Then  객체가 정상적으로 생성된다
+    And   격자 크기는 4×4이다
+
+  # IT-L0-02 — INV-03
+  # UX Contract: —  /  Logic Rule: 저장소가 준비된다
+  Scenario: InMemoryRepository 초기화 (L0)
+    Given InMemoryRepository 인스턴스를 생성한다
+    When  아무 격자도 저장되지 않은 상태이다
+    Then  exists("any-id")는 False를 반환한다
+
+  # IT-L0-03 — INV-01, INV-02, INV-03, INV-04
+  # UX Contract: —  /  Logic Rule: 도메인 상수가 유지된다
+  Scenario: 도메인 상수 초기값 검증 (L0)
+    Given 도메인 상수 모듈이 로드된다
+    Then  MAGIC_CONSTANT는 34이다
+    And   GRID_SIZE는 4이다
+    And   VALUE_RANGE_MAX는 16이다
+    And   BLANK_COUNT는 2이다
+```
+
+---
+
+#### Scenario Group 1: 정상 동작 시나리오 (L1)
 
 ```gherkin
   # IT-S01 — INV-01, INV-02, INV-07, INV-08, INV-09
-  Scenario: 조합 A(작은 수 → 첫 빈칸)로 마방진이 완성되는 경우
+  # UX Contract: "result" 키가 포함된 응답이 보인다  /  Logic Rule: 해가 반환된다
+  Scenario: 조합 A(작은 수 → 첫 빈칸)로 마방진이 완성되는 경우 (L1)
     Given 유효한 4×4 격자에 빈칸 2개가 있다
     And   누락 숫자 두 개 중 작은 수를 첫 번째 빈칸에 배치하면 마방진 조건을 만족한다
     When  solve(grid)를 호출한다
@@ -465,7 +564,8 @@ Feature: 4×4 마방진 두 빈칸 채우기
     And   완성된 격자의 모든 행, 열, 대각선의 합은 34이다
 
   # IT-S02 — INV-01, INV-07, INV-09
-  Scenario: 조합 A 실패 후 조합 B(큰 수 → 첫 빈칸)로 마방진이 완성되는 경우
+  # UX Contract: n1 > n2인 응답이 보인다  /  Logic Rule: 두 번째 조합이 허용된다
+  Scenario: 조합 A 실패 후 조합 B(큰 수 → 첫 빈칸)로 마방진이 완성되는 경우 (L1)
     Given 유효한 4×4 격자에 빈칸 2개가 있다
     And   작은 수를 첫 번째 빈칸에 배치하면 마방진 조건을 만족하지 않는다
     And   큰 수를 첫 번째 빈칸에 배치하면 마방진 조건을 만족한다
@@ -475,14 +575,16 @@ Feature: 4×4 마방진 두 빈칸 채우기
     And   완성된 격자의 모든 행, 열, 대각선의 합은 34이다
 
   # IT-S03 — INV-04, INV-08
-  Scenario: 두 빈칸이 같은 행에 위치하는 경우
+  # UX Contract: r1 = r2인 응답이 보인다  /  Logic Rule: row-major 순서가 유지된다
+  Scenario: 두 빈칸이 같은 행에 위치하는 경우 (L2)
     Given 유효한 4×4 격자에서 두 빈칸이 동일한 행에 있다
     When  solve(grid)를 호출한다
     Then  r1 = r2 이다
     And   c1 < c2 이다 (row-major 순서 보장)
 
   # IT-S04 — INV-03
-  Scenario: 격자를 저장한 후 로드하여 재솔빙하면 동일한 결과가 나오는 경우
+  # UX Contract: 동일한 응답이 보인다  /  Logic Rule: 저장/로드가 유지된다
+  Scenario: 격자를 저장한 후 로드하여 재솔빙하면 동일한 결과가 나오는 경우 (L2)
     Given 유효한 4×4 격자 grid_a를 repository에 id "test-01"로 저장한다
     When  repository에서 id "test-01"로 로드한 격자로 solve를 호출한다
     Then  원본 grid_a로 solve를 호출한 결과와 동일한 int[6]이 반환된다
@@ -490,25 +592,28 @@ Feature: 4×4 마방진 두 빈칸 채우기
 
 ---
 
-#### Scenario Group 2: 입력 검증 실패 시나리오
+#### Scenario Group 2: 입력 검증 실패 시나리오 (L3)
 
 ```gherkin
   # IT-F01 — INV-03
-  Scenario: 격자 크기가 4×4가 아닌 경우
+  # UX Contract: "INVALID_GRID_SIZE" 오류가 보인다  /  Logic Rule: 크기 검증이 거부된다
+  Scenario: 격자 크기가 4×4가 아닌 경우 (L3)
     Given 3행 4열 격자를 입력으로 준다
     When  solve(grid)를 호출한다
     Then  errorCode는 "INVALID_GRID_SIZE" 이다
     And   message는 "행렬 크기는 4×4이어야 합니다." 이다
 
   # IT-F01 (변형) — INV-03
-  Scenario: None을 입력으로 전달하는 경우
+  # UX Contract: "INVALID_INPUT" 오류가 보인다  /  Logic Rule: 입력이 차단된다
+  Scenario: None을 입력으로 전달하는 경우 (L3)
     Given 입력으로 None을 전달한다
     When  solve(grid)를 호출한다
     Then  errorCode는 "INVALID_INPUT" 이다
     And   message는 "입력 행렬이 null입니다." 이다
 
   # IT-F02 — INV-04
-  Scenario: 빈칸이 3개인 경우
+  # UX Contract: "INVALID_BLANK_COUNT" 오류가 보인다  /  Logic Rule: 탐색이 중단된다
+  Scenario: 빈칸이 3개인 경우 (L3)
     Given 4×4 격자에 0이 3개 존재한다
     And   셀 값 범위는 모두 유효하다
     When  solve(grid)를 호출한다
@@ -516,27 +621,31 @@ Feature: 4×4 마방진 두 빈칸 채우기
     And   message는 "빈칸(0)은 정확히 2개이어야 합니다. 현재: 3개" 이다
 
   # IT-F02 (변형) — INV-04
-  Scenario: 빈칸이 0개인 경우
+  # UX Contract: "INVALID_BLANK_COUNT" 오류가 보인다  /  Logic Rule: 탐색이 중단된다
+  Scenario: 빈칸이 0개인 경우 (L3)
     Given 4×4 격자에 0이 없다
     When  solve(grid)를 호출한다
     Then  errorCode는 "INVALID_BLANK_COUNT" 이다
     And   message는 "빈칸(0)은 정확히 2개이어야 합니다. 현재: 0개" 이다
 
   # IT-F03 — INV-05
-  Scenario: 셀 값이 허용 범위를 초과하는 경우
+  # UX Contract: "INVALID_CELL_VALUE" 오류가 보인다  /  Logic Rule: 값 범위 검증이 차단된다
+  Scenario: 셀 값이 허용 범위를 초과하는 경우 (L3)
     Given 4×4 격자의 (행2, 열3) 위치에 값 17이 있다
     When  solve(grid)를 호출한다
     Then  errorCode는 "INVALID_CELL_VALUE" 이다
     And   message는 "셀 값은 0 또는 1~16이어야 합니다. 위치: (행2, 열3), 값: 17" 이다
 
   # IT-F03 (변형) — INV-05
-  Scenario: 셀 값이 음수인 경우
+  # UX Contract: "INVALID_CELL_VALUE" 오류가 보인다  /  Logic Rule: 값 범위 검증이 차단된다
+  Scenario: 셀 값이 음수인 경우 (L3)
     Given 4×4 격자에 셀 값 -1이 존재한다
     When  solve(grid)를 호출한다
     Then  errorCode는 "INVALID_CELL_VALUE" 이다
 
   # IT-F04 — INV-06
-  Scenario: 0을 제외한 숫자가 중복된 경우
+  # UX Contract: "DUPLICATE_VALUE" 오류가 보인다  /  Logic Rule: 중복 탐지가 거부된다
+  Scenario: 0을 제외한 숫자가 중복된 경우 (L3)
     Given 4×4 격자에 숫자 5가 2회 등장한다
     And   격자 크기와 빈칸 수는 유효하다
     When  solve(grid)를 호출한다
@@ -544,7 +653,8 @@ Feature: 4×4 마방진 두 빈칸 채우기
     And   message는 "중복된 값이 있습니다. 값: 5" 이다
 
   # IT-F05 — INV-07
-  Scenario: 두 조합 모두 마방진 조건을 만족하지 않는 경우
+  # UX Contract: "NO_SOLUTION" 오류가 보인다  /  Logic Rule: 풀이가 중단된다
+  Scenario: 두 조합 모두 마방진 조건을 만족하지 않는 경우 (L3)
     Given 유효한 형식의 4×4 격자가 있다
     And   어떤 조합으로도 마방진을 완성할 수 없다
     When  solve(grid)를 호출한다
@@ -554,17 +664,19 @@ Feature: 4×4 마방진 두 빈칸 채우기
 
 ---
 
-#### Scenario Group 3: 입력 검증 순서 시나리오
+#### Scenario Group 3: 입력 검증 순서 시나리오 (L3)
 
 ```gherkin
   # UI-T 복합 — 첫 번째 실패 즉시 반환 규칙 검증
-  Scenario: 크기 오류와 값 오류가 동시에 존재하는 경우
+  # UX Contract: "INVALID_GRID_SIZE" 오류만 보인다  /  Logic Rule: 첫 번째 실패에서 검증이 중단된다
+  Scenario: 크기 오류와 값 오류가 동시에 존재하는 경우 (L3)
     Given 3행 4열 격자에 셀 값 17도 포함되어 있다
     When  solve(grid)를 호출한다
     Then  errorCode는 "INVALID_GRID_SIZE" 이다
     And   "INVALID_CELL_VALUE" errorCode는 반환되지 않는다
 
-  Scenario: 값 범위 오류와 빈칸 오류가 동시에 존재하는 경우
+  # UX Contract: "INVALID_CELL_VALUE" 오류만 보인다  /  Logic Rule: 첫 번째 실패에서 검증이 중단된다
+  Scenario: 값 범위 오류와 빈칸 오류가 동시에 존재하는 경우 (L3)
     Given 4×4 격자에 셀 값 17이 있고 빈칸이 3개이다
     When  solve(grid)를 호출한다
     Then  errorCode는 "INVALID_CELL_VALUE" 이다
@@ -573,41 +685,47 @@ Feature: 4×4 마방진 두 빈칸 채우기
 
 ---
 
-#### Scenario Group 4: 도메인 서비스 단위 시나리오
+#### Scenario Group 4: 도메인 서비스 단위 시나리오 (L1 / L3)
 
 ```gherkin
   # BF-T01 — INV-04, INV-08
-  Scenario: BlankFinder — 빈칸 2개를 row-major 순서로 반환하는 경우
+  # UX Contract: —  /  Logic Rule: row-major 순서가 유지된다
+  Scenario: BlankFinder — 빈칸 2개를 row-major 순서로 반환하는 경우 (L1)
     Given 4×4 격자에서 (행2, 열3)과 (행4, 열1)이 빈칸이다
     When  BlankFinder.findBlanks(grid)를 호출한다
     Then  반환값은 [Cell(2,3), Cell(4,1)] 이다 (row-major 순서)
 
   # BF-T03 — INV-04
-  Scenario: BlankFinder — 빈칸이 3개인 격자가 전달되는 경우
+  # UX Contract: —  /  Logic Rule: 탐색이 중단된다
+  Scenario: BlankFinder — 빈칸이 3개인 격자가 전달되는 경우 (L3)
     Given 4×4 격자에 빈칸(0)이 3개 존재한다
     When  BlankFinder.findBlanks(grid)를 호출한다
     Then  InvalidBlankCountError가 발생한다
 
   # MF-T01 — INV-02, INV-09
-  Scenario: MissingNumberFinder — 누락 숫자 2개를 (smaller, larger) 쌍으로 반환하는 경우
+  # UX Contract: —  /  Logic Rule: 극단값 쌍이 허용된다
+  Scenario: MissingNumberFinder — 누락 숫자 2개를 (smaller, larger) 쌍으로 반환하는 경우 (L1)
     Given 1~16 중 3과 11이 격자에 없다
     When  MissingNumberFinder.findMissing(grid)를 호출한다
     Then  반환값은 MissingPair(smaller=3, larger=11) 이다
 
   # MV-T01 — INV-01
-  Scenario: MagicSquareValidator — 모든 합산 조건이 34인 완성 격자를 검증하는 경우
+  # UX Contract: —  /  Logic Rule: 합 검증이 허용된다
+  Scenario: MagicSquareValidator — 모든 합산 조건이 34인 완성 격자를 검증하는 경우 (L1)
     Given 10개 합산 조건이 모두 34인 완성된 4×4 격자가 있다
     When  MagicSquareValidator.isValid(grid)를 호출한다
     Then  True를 반환한다
 
   # MV-T02 — INV-01
-  Scenario: MagicSquareValidator — 하나의 행 합이 34가 아닌 경우
+  # UX Contract: —  /  Logic Rule: 합 검증이 거부된다
+  Scenario: MagicSquareValidator — 하나의 행 합이 34가 아닌 경우 (L3)
     Given 1행의 합이 33인 격자가 있다
     When  MagicSquareValidator.isValid(grid)를 호출한다
     Then  False를 반환한다
 
   # SS-T03 — INV-07
-  Scenario: SolvingStrategy — 두 조합 모두 실패하는 경우
+  # UX Contract: —  /  Logic Rule: 풀이가 중단된다
+  Scenario: SolvingStrategy — 두 조합 모두 실패하는 경우 (L3)
     Given 유효한 격자와 빈칸 위치, 누락 쌍이 주어졌다
     And   시도 A도 시도 B도 마방진 조건을 만족하지 않는다
     When  SolvingStrategy.solve(grid, blanks, missing)를 호출한다
@@ -616,21 +734,24 @@ Feature: 4×4 마방진 두 빈칸 채우기
 
 ---
 
-#### Scenario Group 5: 엣지 케이스 시나리오
+#### Scenario Group 5: 엣지 케이스 시나리오 (L2)
 
 ```gherkin
-  Scenario: 두 빈칸이 같은 열에 위치하는 경우
+  # UX Contract: c1 = c2인 응답이 보인다  /  Logic Rule: row-major 순서가 유지된다
+  Scenario: 두 빈칸이 같은 열에 위치하는 경우 (L2)
     Given 유효한 격자에서 두 빈칸이 동일한 열에 있다
     When  solve(grid)를 호출한다
     Then  c1 = c2 이다
     And   r1 < r2 이다 (row-major 순서 보장)
 
-  Scenario: 두 빈칸이 같은 대각선에 위치하는 경우
+  # UX Contract: 정상 응답이 보인다  /  Logic Rule: 해가 반환된다
+  Scenario: 두 빈칸이 같은 대각선에 위치하는 경우 (L2)
     Given 유효한 격자에서 두 빈칸이 주대각선 위에 있다
     When  solve(grid)를 호출한다
     Then  정상적으로 int[6]이 반환된다
 
-  Scenario: 누락 숫자가 1과 16인 경우 (극단값)
+  # UX Contract: 정상 응답이 보인다  /  Logic Rule: 극단값 쌍이 허용된다
+  Scenario: 누락 숫자가 1과 16인 경우 (극단값) (L2)
     Given 1~16 중 1과 16이 격자에 없다
     When  MissingNumberFinder.findMissing(grid)를 호출한다
     Then  반환값은 MissingPair(smaller=1, larger=16) 이다
@@ -717,6 +838,15 @@ rg --type py '[^A-Z_"'"'"'(]\b(34|16|4)\b[^)]' entity/ control/
 
 ## 11. 비기능 요구사항 및 개발 원칙
 
+### 11.0 성능 · 보안 · 확장성
+
+| 분류 | 요구사항 | 목표값 | 측정 방법 |
+|------|---------|--------|-----------|
+| **성능** | 입력 검증 + 풀이 전체 처리 시간 | < 100ms | `pytest-benchmark` |
+| **보안** | 입력 유효성 검증 — 4단계 순서 고정 필수 | 100% 검증 통과율 | `pytest tests/boundary/` |
+| **확장성** | 5×5 마방진 지원 (Phase 2) 대비 설계 | Protocol 수준 분리 유지 | 레이어 의존 방향 검토 |
+| **테스트 격리** | 테스트 간 상태 공유 금지 | fixture scope=function 전수 적용 | pytest 수동 검토 |
+
 ### 11.1 코드 스타일
 
 | 항목 | 기준 |
@@ -728,6 +858,15 @@ rg --type py '[^A-Z_"'"'"'(]\b(34|16|4)\b[^)]' entity/ control/
 | Docstring | Google 스타일, 모든 public 메서드에 필수 (Args / Returns / Raises 포함) |
 | Import 순서 | stdlib → third-party → local (isort 기준) |
 | 명명 규칙 | 클래스 PascalCase / 함수·메서드 snake_case / 상수 UPPER_SNAKE_CASE |
+
+**개발 환경:**
+
+| 항목 | 기준 |
+|------|------|
+| 버전 관리 | Git Flow (main / develop / feature 브랜치 전략) |
+| AI 보조 도구 | Cursor AI — `.cursorrules` 기준 준수 |
+| 성능 측정 | pytest-benchmark |
+| 의존성 관리 | `requirements.txt` 버전 고정 |
 
 ### 11.2 금지 패턴 (forbidden)
 
@@ -777,6 +916,7 @@ BLANK_COUNT: int = 2
 | **SC-06** | Data Layer 테스트 커버리지 | ≥ 80% | `pytest --cov=data` |
 | **SC-07** | 전체 테스트 케이스 통과 | 71개 전체 GREEN | `pytest tests/ -v` |
 | **SC-08** | ECB 레이어 의존성 방향 위반 | 0건 | import 방향 수동 검토 |
+| **SC-09** | 입력 검증 + 풀이 응답 시간 | < 100ms | `pytest-benchmark` |
 
 ---
 
@@ -799,10 +939,12 @@ BLANK_COUNT: int = 2
 |------|-----------|
 | GUI / Web UI | Boundary는 입출력 계약 경계 — 실제 화면은 이 훈련의 대상 외 |
 | 데이터베이스 영속성 | Data Layer는 Protocol 수준으로 충분 |
-| 5×5 이상 마방진 | INV-03 위반 — 별도 Epic으로 분리 필요 |
+| 5×5 이상 마방진 | INV-03 위반 — 별도 Epic으로 분리 필요 (Phase 2) |
 | 빈칸 수 변형 케이스 | INV-04 위반 — 이 훈련 범위 외 |
 | 성능 최적화 (비교·벤치마크) | 알고리즘 난이도보다 TDD 훈련이 목적 |
 | 등가 해 열거 | INV-07(해 유일성 전제)에 의해 범위 외 |
+| 네트워크 기능 (API 서버, HTTP) | 순수 Python 함수 계약으로 충분 |
+| 다중 사용자 동시 접속 | InMemoryRepository는 단일 인스턴스 — Phase 2 이상에서 고려 |
 
 ---
 
@@ -856,4 +998,4 @@ BLANK_COUNT: int = 2
 
 ---
 
-*이 PRD는 구현 코드를 포함하지 않는다. 모든 요구사항은 테스트/검증 가능하게 작성되었으며, 새로운 기능은 추가되지 않았다.*
+*이 PRD는 구현 코드를 포함하지 않는다. 모든 요구사항은 테스트/검증 가능하게 작성되었으며, MLOps 과정 Dual-Track UI + Logic TDD 방법론(UX Contract / Logic Rule 이중 언어 체계, L0~L3 Gherkin 레벨)을 적용하였다. 새로운 기능은 추가되지 않았다.*
